@@ -1,0 +1,141 @@
+// Store2door Back Office — Prisma schema
+// Using SQLite for local dev; swap `provider` to "postgresql" for production.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sales     Sale[]
+  purchases Purchase[]
+  expenses  Expense[]
+  imports   CsvImport[]
+}
+
+// Kind of transaction a category belongs to.
+// SQLite doesn't have native enums; we store strings.
+// Allowed values: "SALE" | "PURCHASE" | "EXPENSE"
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String
+  color     String?
+  createdAt DateTime @default(now())
+
+  purchases Purchase[]
+  expenses  Expense[]
+
+  @@unique([name, kind])
+}
+
+// Sales — pulled from the Store2door storefront (CSV import for now)
+// or entered manually at the counter.
+model Sale {
+  id            String   @id @default(cuid())
+  invoiceNumber String?  @unique
+  orderRef      String?
+  customerName  String?
+  customerEmail String?
+  amount        Int      // FRW — stored as integer (no cents in RWF)
+  status        String   @default("COMPLETED") // COMPLETED | PENDING | CANCELLED | REFUNDED
+  source        String   @default("MANUAL")    // MANUAL | IMPORTED
+  date          DateTime
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  importId    String?
+  import      CsvImport? @relation(fields: [importId], references: [id])
+  items       SaleItem[]
+
+  @@index([date])
+  @@index([status])
+}
+
+// Line items inside a sale. Populated either manually on the sale detail
+// page or via a future "Detailed orders" CSV import from the storefront.
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productName String
+  quantity    Float
+  unitPrice   Int      // FRW
+  subtotal    Int      // FRW
+  createdAt   DateTime @default(now())
+
+  @@index([saleId])
+  @@index([productName])
+}
+
+// Purchases — what Store2door buys from farms / suppliers.
+model Purchase {
+  id           String   @id @default(cuid())
+  supplierName String
+  description  String
+  quantity     Float?
+  unit         String?       // kg, crate, box, etc.
+  unitPrice    Int?
+  amount       Int           // FRW total
+  date         DateTime
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  @@index([date])
+  @@index([supplierName])
+}
+
+// Operational expenses — transport, packaging, salaries, utilities, etc.
+model Expense {
+  id            String   @id @default(cuid())
+  description   String
+  amount        Int      // FRW
+  date          DateTime
+  paymentMethod String?  // CASH | MOBILE_MONEY | BANK | CARD
+  reference     String?  // e.g., momo transaction id
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+
+  @@index([date])
+}
+
+// Audit of CSV imports so we can undo / trace a bad import.
+model CsvImport {
+  id         String   @id @default(cuid())
+  filename   String
+  rowCount   Int
+  successful Int
+  failed     Int
+  createdAt  DateTime @default(now())
+
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  sales       Sale[]
+}
