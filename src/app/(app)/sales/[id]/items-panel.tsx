@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { formatFRW } from "@/lib/currency";
+import { ConfirmActionButton } from "@/components/app/confirm-action-button";
 import { addSaleItem, deleteSaleItem } from "./actions";
 
 type Item = {
@@ -108,25 +109,17 @@ export function ItemsPanel({
                       {formatFRW(item.subtotal)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={pending}
-                        onClick={() => {
-                          if (!confirm(`Remove "${item.productName}"?`)) return;
-                          startTransition(async () => {
-                            const res = await deleteSaleItem(item.id, saleId);
-                            if (res?.ok) {
-                              toast.success("Item removed");
-                              router.refresh();
-                            }
-                          });
-                        }}
+                      <ConfirmActionButton
+                        action={() => deleteSaleItem(item.id, saleId)}
+                        title="Remove line item?"
+                        confirmMessage={`Remove "${item.productName}" (${formatFRW(item.subtotal)}) from this sale?`}
+                        successMessage="Item removed"
+                        confirmLabel="Remove"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         aria-label={`Remove ${item.productName}`}
                       >
                         <Trash2 className="size-3.5" />
-                      </Button>
+                      </ConfirmActionButton>
                     </TableCell>
                   </TableRow>
                 ))

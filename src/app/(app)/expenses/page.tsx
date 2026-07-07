@@ -209,6 +209,7 @@ export default async function ExpensesPage({
                       />
                       <ConfirmActionButton
                         action={deleteExpense.bind(null, e.id)}
+                        title="Delete expense?"
                         confirmMessage={`Delete "${e.description}" of ${formatFRW(e.amount)}? This cannot be undone.`}
                         successMessage="Expense deleted"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"

@@ -73,6 +73,7 @@ export default async function SaleDetailPage({
             />
             <ConfirmActionButton
               action={deleteSale.bind(null, sale.id)}
+              title="Delete sale?"
               confirmMessage={`Delete this sale of ${formatFRW(sale.amount)} and its ${sale.items.length} line item${sale.items.length === 1 ? "" : "s"}? This cannot be undone.`}
               successMessage="Sale deleted"
               redirectTo="/sales"

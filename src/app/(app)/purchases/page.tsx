@@ -189,6 +189,7 @@ export default async function PurchasesPage({
                       />
                       <ConfirmActionButton
                         action={deletePurchase.bind(null, p.id)}
+                        title="Delete purchase?"
                         confirmMessage={`Delete this purchase from ${p.supplierName} of ${formatFRW(p.amount)}? This cannot be undone.`}
                         successMessage="Purchase deleted"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"

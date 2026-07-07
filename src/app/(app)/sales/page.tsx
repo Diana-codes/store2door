@@ -228,6 +228,7 @@ export default async function SalesPage({
                       />
                       <ConfirmActionButton
                         action={deleteSale.bind(null, s.id)}
+                        title="Delete sale?"
                         confirmMessage={`Delete this sale${s.invoiceNumber ? ` (#${s.invoiceNumber})` : ""} of ${formatFRW(s.amount)}? This cannot be undone.`}
                         successMessage="Sale deleted"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"

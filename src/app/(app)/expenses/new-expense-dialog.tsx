@@ -24,7 +24,6 @@ import {
 import { toast } from "sonner";
 import { PAYMENT_METHODS, paymentMethodLabel } from "@/lib/payment-methods";
 import { createExpense, updateExpense } from "./actions";
-import { HatGlasses } from "lucide-react";
 
 type Category = { id: string; name: string };
 

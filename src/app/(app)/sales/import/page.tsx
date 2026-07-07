@@ -132,6 +132,8 @@ export default async function ImportSalesPage() {
                     <TableCell className="text-right">
                       <ConfirmActionButton
                         action={undoImport.bind(null, imp.id)}
+                        title="Undo this import?"
+                        confirmLabel="Undo import"
                         confirmMessage={`Undo the import of "${imp.filename}"? This deletes the ${imp._count.sales} sale${imp._count.sales === 1 ? "" : "s"} linked to it. This cannot be undone.`}
                         successMessage="Import undone"
                         variant="outline"
