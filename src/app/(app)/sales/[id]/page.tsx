@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatFRW } from "@/lib/currency";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { ItemsPanel } from "./items-panel";
 
 export default async function SaleDetailPage({
@@ -15,6 +16,7 @@ export default async function SaleDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireUser();
   const { id } = await params;
   const sale = await prisma.sale.findUnique({
     where: { id },

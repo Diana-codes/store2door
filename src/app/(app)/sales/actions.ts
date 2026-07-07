@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 
 const createSchema = z.object({
   customerName: z.string().optional(),
-  customerEmail: z.string().email().optional().or(z.literal("")),
+  customerEmail: z.email().optional().or(z.literal("")),
   orderRef: z.string().optional(),
   invoiceNumber: z.string().optional(),
   amount: z.coerce.number().int().nonnegative(),
@@ -165,9 +165,8 @@ function parseAmount(raw: string | undefined): number | null {
 
 function parseDate(raw: string | undefined): Date | null {
   if (!raw) return null;
-  // Try several common formats: ISO, dd-MM-yyyy, dd/MM/yyyy, with optional time.
-  const iso = new Date(raw);
-  if (!Number.isNaN(iso.getTime())) return iso;
+  // Try dd-MM-yyyy / dd/MM/yyyy first: JS Date would otherwise parse
+  // "03/04/2025" as US-style April 3rd. ISO and other formats fall through.
   const dmY = raw.match(
     /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/,
   );
@@ -183,6 +182,8 @@ function parseDate(raw: string | undefined): Date | null {
       Number(ss),
     );
   }
+  const fallback = new Date(raw);
+  if (!Number.isNaN(fallback.getTime())) return fallback;
   return null;
 }
 

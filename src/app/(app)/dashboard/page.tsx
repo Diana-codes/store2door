@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatFRW } from "@/lib/currency";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { getSummary, todayRange, monthRange } from "@/lib/reports";
 
 export default async function DashboardPage() {
+  await requireUser();
   const [today, month, recentSales, recentExpenses] = await Promise.all([
     getSummary(todayRange()),
     getSummary(monthRange()),

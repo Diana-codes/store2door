@@ -20,6 +20,7 @@ import {
   ClearFiltersButton,
 } from "@/components/app/url-filters";
 import { formatFRW } from "@/lib/currency";
+import { requireUser } from "@/lib/auth";
 import {
   parsePagination,
   pickString,
@@ -39,6 +40,7 @@ export default async function CashbookPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireUser();
   const sp = await searchParams;
   const { page, pageSize, skip } = parsePagination(sp);
 

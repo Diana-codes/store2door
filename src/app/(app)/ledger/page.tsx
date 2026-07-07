@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UrlDateRange, ClearFiltersButton } from "@/components/app/url-filters";
 import { formatFRW } from "@/lib/currency";
+import { requireUser } from "@/lib/auth";
 import { pickDate } from "@/lib/pagination";
 import { loadLedger, type LedgerAccount } from "@/lib/ledger";
 
@@ -34,6 +35,7 @@ export default async function LedgerPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireUser();
   const sp = await searchParams;
   const from = pickDate(sp, "from");
   const to = pickDate(sp, "to");

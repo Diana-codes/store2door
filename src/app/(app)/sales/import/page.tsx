@@ -56,7 +56,7 @@ export default function ImportSalesPage() {
               <li>
                 <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">total</code>{" "}
                 / <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">amount</code>{" "}
-                (required) — integer FRW, "FRW 17,000" is fine
+                (required) — integer FRW, &ldquo;FRW 17,000&rdquo; is fine
               </li>
             </ul>
           </CardContent>
