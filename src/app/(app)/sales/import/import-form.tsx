@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileUp, CheckCircle2, AlertCircle } from "lucide-react";
+import { FileUp, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -28,6 +28,13 @@ export function ImportForm() {
     setFilename(file.name);
     const text = await file.text();
     setPreview(text.slice(0, 600));
+    setResult(null);
+  }
+
+  function clearFile() {
+    if (fileInput.current) fileInput.current.value = "";
+    setFilename(null);
+    setPreview(null);
     setResult(null);
   }
 
@@ -58,6 +65,19 @@ export function ImportForm() {
           <span className="text-sm text-muted-foreground">
             {filename ?? "No file chosen"}
           </span>
+          {filename && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearFile}
+              disabled={pending}
+              aria-label="Remove selected file"
+            >
+              <X className="size-3.5" />
+              Remove
+            </Button>
+          )}
         </div>
       </div>
 
