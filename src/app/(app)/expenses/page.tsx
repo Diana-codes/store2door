@@ -1,5 +1,5 @@
 import { format, endOfDay, startOfDay } from "date-fns";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Prisma } from "@/generated/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,9 @@ import {
   pickDate,
   totalPages,
 } from "@/lib/pagination";
-import { NewExpenseDialog } from "./new-expense-dialog";
+import { ConfirmActionButton } from "@/components/app/confirm-action-button";
+import { ExpenseDialog } from "./new-expense-dialog";
+import { deleteExpense } from "./actions";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -90,7 +92,7 @@ export default async function ExpensesPage({
         title="Expenses"
         description={`${total} expense${total === 1 ? "" : "s"} matched · ${formatFRW(totalAmount)} total`}
         actions={
-          <NewExpenseDialog
+          <ExpenseDialog
             categories={categories}
             trigger={
               <Button>
@@ -134,13 +136,16 @@ export default async function ExpensesPage({
               <TableHead>Category</TableHead>
               <TableHead>Payment</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-20">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {expenses.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="h-32 text-center text-muted-foreground"
                 >
                   No expenses match your filters.
@@ -180,6 +185,31 @@ export default async function ExpensesPage({
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">
                     {formatFRW(e.amount)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <ExpenseDialog
+                        expense={e}
+                        categories={categories}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Edit expense"
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                        }
+                      />
+                      <ConfirmActionButton
+                        action={deleteExpense.bind(null, e.id)}
+                        confirmMessage={`Delete "${e.description}" of ${formatFRW(e.amount)}? This cannot be undone.`}
+                        successMessage="Expense deleted"
+                        aria-label="Delete expense"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </ConfirmActionButton>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

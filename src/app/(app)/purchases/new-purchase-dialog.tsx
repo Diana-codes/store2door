@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -21,22 +22,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { createPurchase } from "./actions";
+import { createPurchase, updatePurchase } from "./actions";
 import { UNITS } from "@/lib/units";
 
 type Category = { id: string; name: string };
 
-export function NewPurchaseDialog({
+export type PurchaseFormData = {
+  id: string;
+  supplierName: string;
+  description: string;
+  categoryId: string | null;
+  quantity: number | null;
+  unit: string | null;
+  unitPrice: number | null;
+  amount: number;
+  date: Date;
+  notes: string | null;
+};
+
+// Without `purchase` the dialog creates a new entry; with it, it edits in place.
+export function PurchaseDialog({
   trigger,
   categories,
+  purchase,
 }: {
   trigger: React.ReactElement;
   categories: Category[];
+  purchase?: PurchaseFormData;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const today = new Date().toISOString().slice(0, 10);
+  const editing = Boolean(purchase);
+  const defaultDate = format(purchase?.date ?? new Date(), "yyyy-MM-dd");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -45,29 +63,41 @@ export function NewPurchaseDialog({
         <form
           action={(formData) => {
             startTransition(async () => {
-              const res = await createPurchase(formData);
+              const res = purchase
+                ? await updatePurchase(purchase.id, formData)
+                : await createPurchase(formData);
               if (res?.error) {
                 toast.error(res.error);
                 return;
               }
-              toast.success("Purchase added");
+              toast.success(editing ? "Purchase updated" : "Purchase added");
               setOpen(false);
               router.refresh();
             });
           }}
         >
           <DialogHeader>
-            <DialogTitle>New purchase</DialogTitle>
+            <DialogTitle>
+              {editing ? "Edit purchase" : "New purchase"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="supplierName">Supplier</Label>
-                <Input id="supplierName" name="supplierName" required />
+                <Input
+                  id="supplierName"
+                  name="supplierName"
+                  required
+                  defaultValue={purchase?.supplierName ?? ""}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="categoryId">Category</Label>
-                <Select name="categoryId">
+                <Select
+                  name="categoryId"
+                  defaultValue={purchase?.categoryId ?? undefined}
+                >
                   <SelectTrigger id="categoryId">
                     <SelectValue placeholder="—">
                       {(value: string) =>
@@ -92,6 +122,7 @@ export function NewPurchaseDialog({
                 name="description"
                 placeholder="e.g. Fresh tomatoes"
                 required
+                defaultValue={purchase?.description ?? ""}
               />
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -103,11 +134,12 @@ export function NewPurchaseDialog({
                   type="number"
                   step="0.01"
                   min="0"
+                  defaultValue={purchase?.quantity ?? ""}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="unit">Unit</Label>
-                <Select name="unit">
+                <Select name="unit" defaultValue={purchase?.unit ?? undefined}>
                   <SelectTrigger id="unit">
                     <SelectValue placeholder="—">
                       {(value: string) =>
@@ -131,6 +163,7 @@ export function NewPurchaseDialog({
                   name="unitPrice"
                   type="number"
                   min="0"
+                  defaultValue={purchase?.unitPrice ?? ""}
                 />
               </div>
             </div>
@@ -143,6 +176,7 @@ export function NewPurchaseDialog({
                   type="number"
                   min="0"
                   required
+                  defaultValue={purchase?.amount ?? ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -151,14 +185,19 @@ export function NewPurchaseDialog({
                   id="date"
                   name="date"
                   type="date"
-                  defaultValue={today}
+                  defaultValue={defaultDate}
                   required
                 />
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes</Label>
-              <Input id="notes" name="notes" placeholder="Optional" />
+              <Input
+                id="notes"
+                name="notes"
+                placeholder="Optional"
+                defaultValue={purchase?.notes ?? ""}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -166,7 +205,7 @@ export function NewPurchaseDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save purchase"}
+              {pending ? "Saving…" : editing ? "Save changes" : "Save purchase"}
             </Button>
           </DialogFooter>
         </form>

@@ -1,5 +1,5 @@
 import { format, endOfDay, startOfDay } from "date-fns";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Prisma } from "@/generated/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,9 @@ import {
   pickDate,
   totalPages,
 } from "@/lib/pagination";
-import { NewPurchaseDialog } from "./new-purchase-dialog";
+import { ConfirmActionButton } from "@/components/app/confirm-action-button";
+import { PurchaseDialog } from "./new-purchase-dialog";
+import { deletePurchase } from "./actions";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -88,7 +90,7 @@ export default async function PurchasesPage({
         title="Purchases"
         description={`${total} purchase${total === 1 ? "" : "s"} matched · ${formatFRW(totalAmount)} total`}
         actions={
-          <NewPurchaseDialog
+          <PurchaseDialog
             categories={categories}
             trigger={
               <Button>
@@ -121,13 +123,16 @@ export default async function PurchasesPage({
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Qty</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-20">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {purchases.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-32 text-center text-muted-foreground"
                 >
                   No purchases match your filters.
@@ -165,6 +170,31 @@ export default async function PurchasesPage({
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">
                     {formatFRW(p.amount)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <PurchaseDialog
+                        purchase={p}
+                        categories={categories}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Edit purchase"
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                        }
+                      />
+                      <ConfirmActionButton
+                        action={deletePurchase.bind(null, p.id)}
+                        confirmMessage={`Delete this purchase from ${p.supplierName} of ${formatFRW(p.amount)}? This cannot be undone.`}
+                        successMessage="Purchase deleted"
+                        aria-label="Delete purchase"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </ConfirmActionButton>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

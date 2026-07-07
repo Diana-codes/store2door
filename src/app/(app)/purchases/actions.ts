@@ -52,3 +52,71 @@ export async function createPurchase(formData: FormData) {
   revalidatePath("/dashboard");
   return { ok: true };
 }
+
+export async function updatePurchase(id: string, formData: FormData) {
+  await requireUser();
+  const parsed = createSchema.safeParse({
+    supplierName: formData.get("supplierName"),
+    description: formData.get("description"),
+    categoryId: formData.get("categoryId") || undefined,
+    quantity: formData.get("quantity") || undefined,
+    unit: formData.get("unit") || undefined,
+    unitPrice: formData.get("unitPrice") || undefined,
+    amount: formData.get("amount"),
+    date: formData.get("date"),
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+  const d = parsed.data;
+  try {
+    await prisma.purchase.update({
+      where: { id },
+      data: {
+        supplierName: d.supplierName,
+        description: d.description,
+        categoryId: d.categoryId || null,
+        quantity: d.quantity ?? null,
+        unit: d.unit || null,
+        unitPrice: d.unitPrice ?? null,
+        amount: d.amount,
+        date: d.date,
+        notes: d.notes || null,
+      },
+    });
+  } catch (e) {
+    if (
+      e instanceof Error &&
+      "code" in e &&
+      (e as { code?: string }).code === "P2025"
+    ) {
+      return { error: "This purchase no longer exists." };
+    }
+    throw e;
+  }
+  revalidatePath("/purchases");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  return { ok: true };
+}
+
+export async function deletePurchase(id: string) {
+  await requireUser();
+  try {
+    await prisma.purchase.delete({ where: { id } });
+  } catch (e) {
+    if (
+      e instanceof Error &&
+      "code" in e &&
+      (e as { code?: string }).code === "P2025"
+    ) {
+      return { error: "This purchase no longer exists." };
+    }
+    throw e;
+  }
+  revalidatePath("/purchases");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  return { ok: true };
+}

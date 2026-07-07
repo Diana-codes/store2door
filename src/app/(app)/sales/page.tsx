@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format, endOfDay, startOfDay } from "date-fns";
-import { FileUp, Plus } from "lucide-react";
+import { FileUp, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Prisma } from "@/generated/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,9 @@ import {
   pickDate,
   totalPages,
 } from "@/lib/pagination";
-import { NewSaleDialog } from "./new-sale-dialog";
+import { ConfirmActionButton } from "@/components/app/confirm-action-button";
+import { SaleDialog } from "./new-sale-dialog";
+import { deleteSale } from "./actions";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -94,7 +96,7 @@ export default async function SalesPage({
               <FileUp className="size-4" />
               Import CSV
             </Button>
-            <NewSaleDialog
+            <SaleDialog
               trigger={
                 <Button>
                   <Plus className="size-4" />
@@ -140,13 +142,16 @@ export default async function SalesPage({
               <TableHead>Status</TableHead>
               <TableHead>Source</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-20">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sales.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-32 text-center text-muted-foreground"
                 >
                   No sales match your filters.
@@ -205,6 +210,30 @@ export default async function SalesPage({
                     <Link href={`/sales/${s.id}`} className="block">
                       {formatFRW(s.amount)}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <SaleDialog
+                        sale={s}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Edit sale"
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                        }
+                      />
+                      <ConfirmActionButton
+                        action={deleteSale.bind(null, s.id)}
+                        confirmMessage={`Delete this sale${s.invoiceNumber ? ` (#${s.invoiceNumber})` : ""} of ${formatFRW(s.amount)}? This cannot be undone.`}
+                        successMessage="Sale deleted"
+                        aria-label="Delete sale"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </ConfirmActionButton>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

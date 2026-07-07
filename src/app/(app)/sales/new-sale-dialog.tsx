@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +22,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { createSale } from "./actions";
+import { createSale, updateSale } from "./actions";
 
-export function NewSaleDialog({ trigger }: { trigger: React.ReactElement }) {
+export type SaleFormData = {
+  id: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  orderRef: string | null;
+  invoiceNumber: string | null;
+  amount: number;
+  status: string;
+  date: Date;
+  notes: string | null;
+};
+
+// Without `sale` the dialog creates a new sale; with it, it edits in place.
+export function SaleDialog({
+  trigger,
+  sale,
+}: {
+  trigger: React.ReactElement;
+  sale?: SaleFormData;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const today = new Date().toISOString().slice(0, 10);
+  const editing = Boolean(sale);
+  const defaultDate = format(sale?.date ?? new Date(), "yyyy-MM-dd");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -36,24 +57,31 @@ export function NewSaleDialog({ trigger }: { trigger: React.ReactElement }) {
         <form
           action={(formData) => {
             startTransition(async () => {
-              const result = await createSale(formData);
+              const result = sale
+                ? await updateSale(sale.id, formData)
+                : await createSale(formData);
               if (result?.error) {
                 toast.error(result.error);
                 return;
               }
-              toast.success("Sale added");
+              toast.success(editing ? "Sale updated" : "Sale added");
               setOpen(false);
               router.refresh();
             });
           }}
         >
           <DialogHeader>
-            <DialogTitle>New sale</DialogTitle>
+            <DialogTitle>{editing ? "Edit sale" : "New sale"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="customerName">Customer name</Label>
-              <Input id="customerName" name="customerName" placeholder="Optional" />
+              <Input
+                id="customerName"
+                name="customerName"
+                placeholder="Optional"
+                defaultValue={sale?.customerName ?? ""}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="customerEmail">Customer email</Label>
@@ -62,12 +90,18 @@ export function NewSaleDialog({ trigger }: { trigger: React.ReactElement }) {
                 name="customerEmail"
                 type="email"
                 placeholder="Optional"
+                defaultValue={sale?.customerEmail ?? ""}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="orderRef">Order ref</Label>
-                <Input id="orderRef" name="orderRef" placeholder="e.g. #563" />
+                <Input
+                  id="orderRef"
+                  name="orderRef"
+                  placeholder="e.g. #563"
+                  defaultValue={sale?.orderRef ?? ""}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="invoiceNumber">Invoice #</Label>
@@ -75,6 +109,7 @@ export function NewSaleDialog({ trigger }: { trigger: React.ReactElement }) {
                   id="invoiceNumber"
                   name="invoiceNumber"
                   placeholder="e.g. 9256"
+                  defaultValue={sale?.invoiceNumber ?? ""}
                 />
               </div>
             </div>
@@ -87,11 +122,12 @@ export function NewSaleDialog({ trigger }: { trigger: React.ReactElement }) {
                   type="number"
                   min="0"
                   required
+                  defaultValue={sale?.amount ?? ""}
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="status">Status</Label>
-                <Select name="status" defaultValue="COMPLETED">
+                <Select name="status" defaultValue={sale?.status ?? "COMPLETED"}>
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
@@ -110,13 +146,18 @@ export function NewSaleDialog({ trigger }: { trigger: React.ReactElement }) {
                 id="date"
                 name="date"
                 type="date"
-                defaultValue={today}
+                defaultValue={defaultDate}
                 required
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes</Label>
-              <Input id="notes" name="notes" placeholder="Optional" />
+              <Input
+                id="notes"
+                name="notes"
+                placeholder="Optional"
+                defaultValue={sale?.notes ?? ""}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -128,7 +169,7 @@ export function NewSaleDialog({ trigger }: { trigger: React.ReactElement }) {
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save sale"}
+              {pending ? "Saving…" : editing ? "Save changes" : "Save sale"}
             </Button>
           </DialogFooter>
         </form>

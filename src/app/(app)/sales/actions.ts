@@ -64,12 +64,97 @@ export async function createSale(formData: FormData) {
   return { ok: true };
 }
 
+export async function updateSale(id: string, formData: FormData) {
+  await requireUser();
+  const parsed = createSchema.safeParse({
+    customerName: formData.get("customerName") || undefined,
+    customerEmail: formData.get("customerEmail") || undefined,
+    orderRef: formData.get("orderRef") || undefined,
+    invoiceNumber: formData.get("invoiceNumber") || undefined,
+    amount: formData.get("amount"),
+    status: formData.get("status"),
+    date: formData.get("date"),
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+  const d = parsed.data;
+  try {
+    await prisma.sale.update({
+      where: { id },
+      data: {
+        customerName: d.customerName || null,
+        customerEmail: d.customerEmail ? d.customerEmail : null,
+        orderRef: d.orderRef || null,
+        invoiceNumber: d.invoiceNumber || null,
+        amount: d.amount,
+        status: d.status,
+        date: d.date,
+        notes: d.notes || null,
+      },
+    });
+  } catch (e) {
+    const code =
+      e instanceof Error && "code" in e
+        ? (e as { code?: string }).code
+        : undefined;
+    if (code === "P2002") {
+      return {
+        error: `Invoice number ${d.invoiceNumber} already exists on another sale.`,
+      };
+    }
+    if (code === "P2025") {
+      return { error: "This sale no longer exists." };
+    }
+    throw e;
+  }
+  revalidatePath("/sales");
+  revalidatePath(`/sales/${id}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  return { ok: true };
+}
+
 export async function deleteSale(id: string) {
   await requireUser();
-  await prisma.sale.delete({ where: { id } });
+  try {
+    await prisma.sale.delete({ where: { id } });
+  } catch (e) {
+    if (
+      e instanceof Error &&
+      "code" in e &&
+      (e as { code?: string }).code === "P2025"
+    ) {
+      return { error: "This sale no longer exists." };
+    }
+    throw e;
+  }
   revalidatePath("/sales");
   revalidatePath("/dashboard");
+  revalidatePath("/reports");
   return { ok: true };
+}
+
+// Removes every sale created or overwritten by a CSV import, plus the import
+// record itself. Sale items on those sales cascade-delete.
+export async function undoImport(importId: string) {
+  await requireUser();
+  const existing = await prisma.csvImport.findUnique({
+    where: { id: importId },
+  });
+  if (!existing) return { error: "This import no longer exists." };
+
+  const [deleted] = await prisma.$transaction([
+    prisma.sale.deleteMany({ where: { importId } }),
+    prisma.csvImport.delete({ where: { id: importId } }),
+  ]);
+
+  revalidatePath("/sales");
+  revalidatePath("/sales/import");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  return { ok: true, deleted: deleted.count };
 }
 
 // CSV import. Accepts flexible column headers — matches common exports.

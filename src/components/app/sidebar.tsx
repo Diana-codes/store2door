@@ -2,36 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  Package,
-  Receipt,
-  BookOpen,
-  BookText,
-  BarChart3,
-  Settings,
-  LogOut,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/sales", label: "Sales", icon: ShoppingBag },
-  { href: "/purchases", label: "Purchases", icon: Package },
-  { href: "/expenses", label: "Expenses", icon: Receipt },
-  { href: "/cashbook", label: "Cashbook", icon: BookOpen },
-  { href: "/ledger", label: "Ledger", icon: BookText },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import { navItems } from "./nav-items";
 
 export function Sidebar({ userName }: { userName: string }) {
   const pathname = usePathname();
   return (
-    <aside className="sticky top-0 flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground lg:flex">
       <div className="px-6 py-5 border-b">
         <Logo size="md" />
         <p className="mt-1 text-[11px] text-muted-foreground tracking-wide">

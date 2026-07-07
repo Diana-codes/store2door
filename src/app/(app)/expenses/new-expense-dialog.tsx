@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -21,21 +22,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { createExpense } from "./actions";
+import { createExpense, updateExpense } from "./actions";
 
 type Category = { id: string; name: string };
 
-export function NewExpenseDialog({
+export type ExpenseFormData = {
+  id: string;
+  description: string;
+  categoryId: string | null;
+  amount: number;
+  date: Date;
+  paymentMethod: string | null;
+  reference: string | null;
+  notes: string | null;
+};
+
+// Without `expense` the dialog creates a new entry; with it, it edits in place.
+export function ExpenseDialog({
   trigger,
   categories,
+  expense,
 }: {
   trigger: React.ReactElement;
   categories: Category[];
+  expense?: ExpenseFormData;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const today = new Date().toISOString().slice(0, 10);
+  const editing = Boolean(expense);
+  const defaultDate = format(expense?.date ?? new Date(), "yyyy-MM-dd");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -44,19 +60,23 @@ export function NewExpenseDialog({
         <form
           action={(formData) => {
             startTransition(async () => {
-              const res = await createExpense(formData);
+              const res = expense
+                ? await updateExpense(expense.id, formData)
+                : await createExpense(formData);
               if (res?.error) {
                 toast.error(res.error);
                 return;
               }
-              toast.success("Expense recorded");
+              toast.success(editing ? "Expense updated" : "Expense recorded");
               setOpen(false);
               router.refresh();
             });
           }}
         >
           <DialogHeader>
-            <DialogTitle>New expense</DialogTitle>
+            <DialogTitle>
+              {editing ? "Edit expense" : "New expense"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -66,12 +86,16 @@ export function NewExpenseDialog({
                 name="description"
                 placeholder="e.g. Delivery fuel for Kigali route"
                 required
+                defaultValue={expense?.description ?? ""}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="categoryId">Category</Label>
-                <Select name="categoryId">
+                <Select
+                  name="categoryId"
+                  defaultValue={expense?.categoryId ?? undefined}
+                >
                   <SelectTrigger id="categoryId">
                     <SelectValue placeholder="—">
                       {(value: string) =>
@@ -90,7 +114,10 @@ export function NewExpenseDialog({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="paymentMethod">Payment method</Label>
-                <Select name="paymentMethod">
+                <Select
+                  name="paymentMethod"
+                  defaultValue={expense?.paymentMethod ?? undefined}
+                >
                   <SelectTrigger id="paymentMethod">
                     <SelectValue placeholder="—" />
                   </SelectTrigger>
@@ -112,6 +139,7 @@ export function NewExpenseDialog({
                   type="number"
                   min="0"
                   required
+                  defaultValue={expense?.amount ?? ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -120,7 +148,7 @@ export function NewExpenseDialog({
                   id="date"
                   name="date"
                   type="date"
-                  defaultValue={today}
+                  defaultValue={defaultDate}
                   required
                 />
               </div>
@@ -131,11 +159,17 @@ export function NewExpenseDialog({
                 id="reference"
                 name="reference"
                 placeholder="Optional (e.g. MoMo transaction id)"
+                defaultValue={expense?.reference ?? ""}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes</Label>
-              <Input id="notes" name="notes" placeholder="Optional" />
+              <Input
+                id="notes"
+                name="notes"
+                placeholder="Optional"
+                defaultValue={expense?.notes ?? ""}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -143,7 +177,7 @@ export function NewExpenseDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save expense"}
+              {pending ? "Saving…" : editing ? "Save changes" : "Save expense"}
             </Button>
           </DialogFooter>
         </form>

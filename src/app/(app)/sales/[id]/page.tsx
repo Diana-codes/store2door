@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { formatFRW } from "@/lib/currency";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { ConfirmActionButton } from "@/components/app/confirm-action-button";
+import { SaleDialog } from "../new-sale-dialog";
+import { deleteSale } from "../actions";
 import { ItemsPanel } from "./items-panel";
 
 export default async function SaleDetailPage({
@@ -43,17 +46,40 @@ export default async function SaleDetailPage({
         title={sale.invoiceNumber ? `Sale #${sale.invoiceNumber}` : "Sale"}
         description={`${sale.customerName ?? "Manual sale"} · ${format(sale.date, "EEEE d MMMM yyyy, HH:mm")}`}
         actions={
-          <Badge
-            variant={
-              sale.status === "COMPLETED"
-                ? "default"
-                : sale.status === "CANCELLED"
-                  ? "destructive"
-                  : "secondary"
-            }
-          >
-            {sale.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={
+                sale.status === "COMPLETED"
+                  ? "default"
+                  : sale.status === "CANCELLED"
+                    ? "destructive"
+                    : "secondary"
+              }
+            >
+              {sale.status}
+            </Badge>
+            <SaleDialog
+              sale={sale}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Pencil className="size-3.5" />
+                  Edit
+                </Button>
+              }
+            />
+            <ConfirmActionButton
+              action={deleteSale.bind(null, sale.id)}
+              confirmMessage={`Delete this sale of ${formatFRW(sale.amount)} and its ${sale.items.length} line item${sale.items.length === 1 ? "" : "s"}? This cannot be undone.`}
+              successMessage="Sale deleted"
+              redirectTo="/sales"
+              variant="outline"
+              size="sm"
+              aria-label="Delete sale"
+            >
+              <Trash2 className="size-3.5" />
+              Delete
+            </ConfirmActionButton>
+          </div>
         }
       />
 
