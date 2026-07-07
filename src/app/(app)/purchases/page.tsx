@@ -180,6 +180,7 @@ export default async function PurchasesPage({
                           <Button
                             variant="ghost"
                             size="icon-sm"
+                            className="text-primary hover:bg-primary/10 hover:text-primary"
                             aria-label="Edit purchase"
                           >
                             <Pencil className="size-3.5" />
@@ -190,6 +191,7 @@ export default async function PurchasesPage({
                         action={deletePurchase.bind(null, p.id)}
                         confirmMessage={`Delete this purchase from ${p.supplierName} of ${formatFRW(p.amount)}? This cannot be undone.`}
                         successMessage="Purchase deleted"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         aria-label="Delete purchase"
                       >
                         <Trash2 className="size-3.5" />

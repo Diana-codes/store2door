@@ -61,7 +61,11 @@ export default async function SaleDetailPage({
             <SaleDialog
               sale={sale}
               trigger={
-                <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-primary hover:bg-primary/10 hover:text-primary"
+                >
                   <Pencil className="size-3.5" />
                   Edit
                 </Button>
@@ -74,6 +78,7 @@ export default async function SaleDetailPage({
               redirectTo="/sales"
               variant="outline"
               size="sm"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               aria-label="Delete sale"
             >
               <Trash2 className="size-3.5" />

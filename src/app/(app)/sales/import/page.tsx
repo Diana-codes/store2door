@@ -136,6 +136,7 @@ export default async function ImportSalesPage() {
                         successMessage="Import undone"
                         variant="outline"
                         size="sm"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         aria-label={`Undo import of ${imp.filename}`}
                       >
                         <Undo2 className="size-3.5" />

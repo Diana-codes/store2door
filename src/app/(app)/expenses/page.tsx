@@ -195,6 +195,7 @@ export default async function ExpensesPage({
                           <Button
                             variant="ghost"
                             size="icon-sm"
+                            className="text-primary hover:bg-primary/10 hover:text-primary"
                             aria-label="Edit expense"
                           >
                             <Pencil className="size-3.5" />
@@ -205,6 +206,7 @@ export default async function ExpensesPage({
                         action={deleteExpense.bind(null, e.id)}
                         confirmMessage={`Delete "${e.description}" of ${formatFRW(e.amount)}? This cannot be undone.`}
                         successMessage="Expense deleted"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         aria-label="Delete expense"
                       >
                         <Trash2 className="size-3.5" />

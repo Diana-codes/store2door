@@ -219,6 +219,7 @@ export default async function SalesPage({
                           <Button
                             variant="ghost"
                             size="icon-sm"
+                            className="text-primary hover:bg-primary/10 hover:text-primary"
                             aria-label="Edit sale"
                           >
                             <Pencil className="size-3.5" />
@@ -229,6 +230,7 @@ export default async function SalesPage({
                         action={deleteSale.bind(null, s.id)}
                         confirmMessage={`Delete this sale${s.invoiceNumber ? ` (#${s.invoiceNumber})` : ""} of ${formatFRW(s.amount)}? This cannot be undone.`}
                         successMessage="Sale deleted"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         aria-label="Delete sale"
                       >
                         <Trash2 className="size-3.5" />
