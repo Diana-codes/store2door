@@ -1,13 +1,24 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "./prisma";
 
 const COOKIE_NAME = "s2d_session";
-const SECRET = process.env.SESSION_SECRET ?? "dev-only-secret-change-me";
+
+function sessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SESSION_SECRET must be set in production — session cookies would be forgeable otherwise.",
+    );
+  }
+  return "dev-only-secret-change-me";
+}
 
 function sign(value: string) {
-  return createHmac("sha256", SECRET).update(value).digest("hex");
+  return createHmac("sha256", sessionSecret()).update(value).digest("hex");
 }
 
 function verify(value: string, signature: string) {
@@ -45,14 +56,16 @@ export async function getSessionUserId(): Promise<string | null> {
   return userId;
 }
 
-export async function getCurrentUser() {
+// cache() dedupes the DB lookup across layout + page within one render pass,
+// so per-page auth checks don't multiply queries.
+export const getCurrentUser = cache(async () => {
   const userId = await getSessionUserId();
   if (!userId) return null;
   return prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true, name: true },
   });
-}
+});
 
 // For pages inside the authenticated shell — redirects away if unauthenticated.
 export async function requireUser() {

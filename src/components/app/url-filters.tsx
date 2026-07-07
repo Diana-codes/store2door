@@ -42,12 +42,16 @@ function useUrlState() {
 
 export function SearchInput({ placeholder }: { placeholder: string }) {
   const { params, setParam } = useUrlState();
-  const [value, setValue] = useState(params.get("q") ?? "");
+  const urlValue = params.get("q") ?? "";
+  const [value, setValue] = useState(urlValue);
 
   // Keep input in sync if URL changes externally (e.g. clear button).
-  useEffect(() => {
-    setValue(params.get("q") ?? "");
-  }, [params]);
+  // Adjusting state during render avoids a cascading effect re-render.
+  const [lastUrlValue, setLastUrlValue] = useState(urlValue);
+  if (lastUrlValue !== urlValue) {
+    setLastUrlValue(urlValue);
+    setValue(urlValue);
+  }
 
   // Debounce updates to URL.
   useEffect(() => {

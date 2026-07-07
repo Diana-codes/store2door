@@ -1,4 +1,4 @@
-import { startOfDay, endOfDay, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { prisma } from "./prisma";
 
 export type Range = { from: Date; to: Date };
@@ -77,25 +77,25 @@ export async function getDailySeries(days: number) {
     string,
     { date: string; sales: number; purchases: number; expenses: number; net: number }
   >();
+  // format() keys by local calendar day — toISOString would shift days for
+  // timezones ahead of UTC (Rwanda is UTC+2), mislabelling the chart.
+  const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
+
   for (let i = 0; i < days; i++) {
-    const d = startOfDay(subDays(new Date(), days - 1 - i));
-    const key = d.toISOString().slice(0, 10);
+    const key = dayKey(subDays(new Date(), days - 1 - i));
     buckets.set(key, { date: key, sales: 0, purchases: 0, expenses: 0, net: 0 });
   }
 
   for (const s of sales) {
-    const key = startOfDay(s.date).toISOString().slice(0, 10);
-    const bucket = buckets.get(key);
+    const bucket = buckets.get(dayKey(s.date));
     if (bucket) bucket.sales += s.amount;
   }
   for (const p of purchases) {
-    const key = startOfDay(p.date).toISOString().slice(0, 10);
-    const bucket = buckets.get(key);
+    const bucket = buckets.get(dayKey(p.date));
     if (bucket) bucket.purchases += p.amount;
   }
   for (const e of expenses) {
-    const key = startOfDay(e.date).toISOString().slice(0, 10);
-    const bucket = buckets.get(key);
+    const bucket = buckets.get(dayKey(e.date));
     if (bucket) bucket.expenses += e.amount;
   }
 

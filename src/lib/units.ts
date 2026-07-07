@@ -19,5 +19,5 @@ export const UNITS: { value: string; label: string }[] = [
 
 export function unitLabel(value: string | null | undefined): string {
   if (!value) return "";
-  return UNITS.find((u) => u.value === value)?.value ?? value;
+  return UNITS.find((u) => u.value === value)?.label ?? value;
 }

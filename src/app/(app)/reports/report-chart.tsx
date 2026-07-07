@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -23,9 +23,16 @@ type Row = {
   net: number;
 };
 
+const emptySubscribe = () => () => {};
+
 export function ReportChart({ data }: { data: Row[] }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Recharts' ResponsiveContainer can't render on the server; report false
+  // until hydration completes so server and client markup match.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   const enriched = data.map((d) => ({
     ...d,

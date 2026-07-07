@@ -23,6 +23,7 @@ import {
 } from "@/components/app/url-filters";
 import { formatFRW } from "@/lib/currency";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import {
   parsePagination,
   pickString,
@@ -38,6 +39,7 @@ export default async function SalesPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireUser();
   const sp = await searchParams;
   const { page, pageSize, skip, take } = parsePagination(sp);
 

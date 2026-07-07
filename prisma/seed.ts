@@ -48,7 +48,14 @@ async function main() {
       passwordHash,
     },
   });
-  console.log(`  • admin user → ${adminEmail} / ${adminPassword}`);
+  // Never print the password — this runs on every production deploy and
+  // would leak it into the host's build/deploy logs.
+  console.log(`  • admin user → ${adminEmail}`);
+  if (!process.env.SEED_ADMIN_PASSWORD) {
+    console.warn(
+      "  ⚠ SEED_ADMIN_PASSWORD not set — using the default dev password. Set it before seeding in production.",
+    );
+  }
   console.log("Done.");
 }
 

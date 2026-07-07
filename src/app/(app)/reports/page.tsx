@@ -4,6 +4,7 @@ import { StatCard } from "@/components/app/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatFRW } from "@/lib/currency";
+import { requireUser } from "@/lib/auth";
 import {
   getSummary,
   monthRange,
@@ -16,6 +17,7 @@ import { TrendingUp, TrendingDown, ShoppingBag, Receipt } from "lucide-react";
 import { ReportChart } from "./report-chart";
 
 export default async function ReportsPage() {
+  await requireUser();
   const thisMonth = monthRange();
   const last30 = lastNDays(30);
 
