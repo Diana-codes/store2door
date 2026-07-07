@@ -115,6 +115,28 @@ export function UrlSelect({
   );
 }
 
+// Single-date picker bound to one URL param (e.g. the dashboard's ?date=).
+export function UrlDateInput({
+  paramKey,
+  ariaLabel,
+  className,
+}: {
+  paramKey: string;
+  ariaLabel: string;
+  className?: string;
+}) {
+  const { params, setParam } = useUrlState();
+  return (
+    <Input
+      type="date"
+      aria-label={ariaLabel}
+      className={className ?? "w-[148px]"}
+      value={params.get(paramKey) ?? ""}
+      onChange={(e) => setParam(paramKey, e.target.value || undefined)}
+    />
+  );
+}
+
 export function UrlDateRange() {
   const { params, setParam } = useUrlState();
   return (

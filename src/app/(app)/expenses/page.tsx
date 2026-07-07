@@ -29,6 +29,7 @@ import {
   totalPages,
 } from "@/lib/pagination";
 import { ConfirmActionButton } from "@/components/app/confirm-action-button";
+import { PAYMENT_METHODS, paymentMethodLabel } from "@/lib/payment-methods";
 import { ExpenseDialog } from "./new-expense-dialog";
 import { deleteExpense } from "./actions";
 
@@ -114,12 +115,10 @@ export default async function ExpensesPage({
         <UrlSelect
           paramKey="method"
           placeholder="Payment"
-          options={[
-            { value: "CASH", label: "Cash" },
-            { value: "MOBILE_MONEY", label: "Mobile Money" },
-            { value: "BANK", label: "Bank transfer" },
-            { value: "CARD", label: "Card" },
-          ]}
+          options={PAYMENT_METHODS.map((m) => ({
+            value: m.value,
+            label: m.label,
+          }))}
         />
         <UrlDateRange />
         <ClearFiltersButton
@@ -180,8 +179,14 @@ export default async function ExpensesPage({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {e.paymentMethod?.replace("_", " ") ?? "—"}
+                  <TableCell className="text-sm">
+                    {e.paymentMethod ? (
+                      <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {paymentMethodLabel(e.paymentMethod)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">
                     {formatFRW(e.amount)}

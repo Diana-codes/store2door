@@ -4,13 +4,14 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { PAYMENT_METHOD_VALUES } from "@/lib/payment-methods";
 
 const createSchema = z.object({
   description: z.string().min(1),
   categoryId: z.string().optional(),
   amount: z.coerce.number().int().nonnegative(),
   date: z.coerce.date(),
-  paymentMethod: z.string().optional(),
+  paymentMethod: z.enum(PAYMENT_METHOD_VALUES).optional(),
   reference: z.string().optional(),
   notes: z.string().optional(),
 });

@@ -56,6 +56,28 @@ export function PurchaseDialog({
   const editing = Boolean(purchase);
   const defaultDate = format(purchase?.date ?? new Date(), "yyyy-MM-dd");
 
+  // Total auto-fills from qty × unit price but stays editable for
+  // discounts or rounding.
+  const [quantity, setQuantity] = useState(
+    purchase?.quantity != null ? String(purchase.quantity) : "",
+  );
+  const [unitPrice, setUnitPrice] = useState(
+    purchase?.unitPrice != null ? String(purchase.unitPrice) : "",
+  );
+  const [amount, setAmount] = useState(
+    purchase?.amount != null ? String(purchase.amount) : "",
+  );
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  function recalcAmount(q: string, p: string) {
+    const qn = Number(q);
+    const pn = Number(p);
+    if (q !== "" && p !== "" && Number.isFinite(qn) && Number.isFinite(pn)) {
+      setAmount(String(Math.round(qn * pn)));
+      setAutoFilled(true);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger} />
@@ -134,7 +156,11 @@ export function PurchaseDialog({
                   type="number"
                   step="0.01"
                   min="0"
-                  defaultValue={purchase?.quantity ?? ""}
+                  value={quantity}
+                  onChange={(e) => {
+                    setQuantity(e.target.value);
+                    recalcAmount(e.target.value, unitPrice);
+                  }}
                 />
               </div>
               <div className="grid gap-2">
@@ -163,7 +189,11 @@ export function PurchaseDialog({
                   name="unitPrice"
                   type="number"
                   min="0"
-                  defaultValue={purchase?.unitPrice ?? ""}
+                  value={unitPrice}
+                  onChange={(e) => {
+                    setUnitPrice(e.target.value);
+                    recalcAmount(quantity, e.target.value);
+                  }}
                 />
               </div>
             </div>
@@ -176,8 +206,17 @@ export function PurchaseDialog({
                   type="number"
                   min="0"
                   required
-                  defaultValue={purchase?.amount ?? ""}
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setAutoFilled(false);
+                  }}
                 />
+                {autoFilled && (
+                  <p className="text-xs text-muted-foreground">
+                    Auto-calculated — edit to override.
+                  </p>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="date">Date</Label>

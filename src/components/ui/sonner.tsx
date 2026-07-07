@@ -34,6 +34,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
+          // Brand colors: success in Store2door green, errors in red.
+          "--success-bg": "var(--primary)",
+          "--success-text": "var(--primary-foreground)",
+          "--success-border": "var(--primary)",
+          "--error-bg": "var(--destructive)",
+          "--error-text": "var(--primary-foreground)",
+          "--error-border": "var(--destructive)",
         } as React.CSSProperties
       }
       toastOptions={{

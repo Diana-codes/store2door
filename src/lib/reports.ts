@@ -8,6 +8,10 @@ export function todayRange(): Range {
   return { from: startOfDay(now), to: endOfDay(now) };
 }
 
+export function dayRange(date: Date): Range {
+  return { from: startOfDay(date), to: endOfDay(date) };
+}
+
 export function monthRange(date = new Date()): Range {
   return { from: startOfMonth(date), to: endOfMonth(date) };
 }

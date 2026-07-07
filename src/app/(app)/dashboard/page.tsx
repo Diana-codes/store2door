@@ -7,27 +7,49 @@ import {
   TrendingDown,
   ArrowRight,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { PageHeader } from "@/components/app/page-header";
 import { StatCard } from "@/components/app/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  UrlDateInput,
+  ClearFiltersButton,
+} from "@/components/app/url-filters";
 import { formatFRW } from "@/lib/currency";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { getSummary, todayRange, monthRange } from "@/lib/reports";
+import { pickDate } from "@/lib/pagination";
+import { getSummary, dayRange, monthRange } from "@/lib/reports";
 
-export default async function DashboardPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
   await requireUser();
+  const sp = await searchParams;
+
+  // Viewing date — defaults to today, but any day can be selected to see
+  // backdated entries where they were recorded.
+  const selected = pickDate(sp, "date");
+  const viewDate = selected ?? new Date();
+  const viewingToday = isSameDay(viewDate, new Date());
+  const day = dayRange(viewDate);
+
   const [today, month, recentSales, recentExpenses] = await Promise.all([
-    getSummary(todayRange()),
-    getSummary(monthRange()),
+    getSummary(day),
+    getSummary(monthRange(viewDate)),
     prisma.sale.findMany({
+      where: selected ? { date: { gte: day.from, lte: day.to } } : {},
       orderBy: { date: "desc" },
       take: 5,
     }),
     prisma.expense.findMany({
+      where: selected ? { date: { gte: day.from, lte: day.to } } : {},
       orderBy: { date: "desc" },
       take: 5,
       include: { category: true },
@@ -41,17 +63,21 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <PageHeader
         title="Dashboard"
-        description={`Overview for ${format(new Date(), "EEEE, d MMMM yyyy")}`}
+        description={`Overview for ${format(viewDate, "EEEE, d MMMM yyyy")}`}
         actions={
-          <Button render={<Link href="/reports" />}>
-            View reports <ArrowRight className="ml-1 size-4" />
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <UrlDateInput paramKey="date" ariaLabel="View a specific day" />
+            <ClearFiltersButton keys={["date"]} />
+            <Button render={<Link href="/reports" />}>
+              View reports <ArrowRight className="ml-1 size-4" />
+            </Button>
+          </div>
         }
       />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold tracking-tight">
-          Today
+          {viewingToday ? "Today" : format(viewDate, "EEEE d MMMM")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
@@ -86,7 +112,8 @@ export default async function DashboardPage() {
 
       <section>
         <h2 className="mb-4 text-lg font-semibold tracking-tight">
-          This month ({format(new Date(), "MMMM")})
+          {viewingToday ? "This month" : "That month"} (
+          {format(viewDate, "MMMM yyyy")})
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
@@ -113,7 +140,11 @@ export default async function DashboardPage() {
       <section className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Recent sales</CardTitle>
+            <CardTitle className="text-base">
+              {selected
+                ? `Sales on ${format(viewDate, "d MMM")}`
+                : "Recent sales"}
+            </CardTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -125,7 +156,7 @@ export default async function DashboardPage() {
           <CardContent>
             {recentSales.length === 0 ? (
               <EmptyState
-                title="No sales yet"
+                title={selected ? "No sales on this day" : "No sales yet"}
                 cta={{ href: "/sales/import", label: "Import from CSV" }}
               />
             ) : (
@@ -166,7 +197,11 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Recent expenses</CardTitle>
+            <CardTitle className="text-base">
+              {selected
+                ? `Expenses on ${format(viewDate, "d MMM")}`
+                : "Recent expenses"}
+            </CardTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -178,7 +213,9 @@ export default async function DashboardPage() {
           <CardContent>
             {recentExpenses.length === 0 ? (
               <EmptyState
-                title="No expenses yet"
+                title={
+                  selected ? "No expenses on this day" : "No expenses yet"
+                }
                 cta={{ href: "/expenses", label: "Record one" }}
               />
             ) : (

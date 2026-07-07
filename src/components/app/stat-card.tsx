@@ -32,8 +32,8 @@ export function StatCard({
   } as const;
 
   return (
-    <Card className={cn("border", tones[tone])}>
-      <CardContent className="p-6">
+    <Card className={cn("border py-5", tones[tone])}>
+      <CardContent className="px-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
           {Icon && (
@@ -42,11 +42,11 @@ export function StatCard({
             </div>
           )}
         </div>
-        <p className="mt-5 text-3xl font-bold tabular-nums tracking-tight truncate">
+        <p className="mt-3 text-[1.75rem] leading-9 font-bold tabular-nums tracking-tight truncate">
           {value}
         </p>
         {sub && (
-          <p className="mt-2 text-xs text-muted-foreground">{sub}</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p>
         )}
       </CardContent>
     </Card>

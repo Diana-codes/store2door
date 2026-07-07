@@ -22,7 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { PAYMENT_METHODS, paymentMethodLabel } from "@/lib/payment-methods";
 import { createExpense, updateExpense } from "./actions";
+import { HatGlasses } from "lucide-react";
 
 type Category = { id: string; name: string };
 
@@ -119,13 +121,16 @@ export function ExpenseDialog({
                   defaultValue={expense?.paymentMethod ?? undefined}
                 >
                   <SelectTrigger id="paymentMethod">
-                    <SelectValue placeholder="—" />
+                    <SelectValue placeholder="—">
+                      {(value: string) => paymentMethodLabel(value) ?? "—"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CASH">Cash</SelectItem>
-                    <SelectItem value="MOBILE_MONEY">Mobile Money</SelectItem>
-                    <SelectItem value="BANK">Bank transfer</SelectItem>
-                    <SelectItem value="CARD">Card</SelectItem>
+                    {PAYMENT_METHODS.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
