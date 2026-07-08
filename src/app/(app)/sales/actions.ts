@@ -157,37 +157,24 @@ export async function undoImport(importId: string) {
   return { ok: true, deleted: deleted.count };
 }
 
-// CSV import. Accepts flexible column headers — matches common exports.
-// Recognised headers (case-insensitive, trimmed):
-//   order / order_id / order_ref  → orderRef
-//   customer / customer_name / name → customerName
-//   email / customer_email         → customerEmail
-//   invoice / invoice_number       → invoiceNumber
-//   date                           → date
-//   status                         → status
-//   total / amount                 → amount
+// CSV import. Accepts flexible column headers — matches common exports,
+// including the Store2door storefront's own naming (Order Number, Invoice
+// Date, Payment Method, Total price, Customer Notes...).
+// Recognised headers (case-insensitive, punctuation-stripped):
+//   order / order_id / order_ref / order_number     → orderRef
+//   customer / customer_name / name                 → customerName
+//   email / customer_email                          → customerEmail
+//   invoice / invoice_number / invoice_no            → invoiceNumber
+//   date / order_date / invoice_date                 → date (order_date preferred)
+//   status / order_status                            → status
+//   total / amount / total_price / grand_total /
+//     total_amount                                   → amount (required)
+//   notes / customer_notes                            → notes
+//   payment_method / payment                          → paymentMethod (stored in notes)
 const importSchema = z.object({
   csv: z.string().min(1),
   filename: z.string().default("import.csv"),
 });
-
-const headerMap: Record<string, keyof ParsedRow> = {
-  order: "orderRef",
-  order_id: "orderRef",
-  order_ref: "orderRef",
-  customer: "customerName",
-  customer_name: "customerName",
-  name: "customerName",
-  email: "customerEmail",
-  customer_email: "customerEmail",
-  invoice: "invoiceNumber",
-  invoice_number: "invoiceNumber",
-  invoice_no: "invoiceNumber",
-  date: "date",
-  status: "status",
-  total: "amount",
-  amount: "amount",
-};
 
 type ParsedRow = {
   orderRef?: string;
@@ -197,7 +184,51 @@ type ParsedRow = {
   date?: string;
   status?: string;
   amount?: string;
+  notes?: string;
+  paymentMethod?: string;
 };
+
+// Lower priority number wins when two aliases for the same field are both
+// present (e.g. prefer the order date over the invoice/billing date).
+const headerMap: Record<string, { field: keyof ParsedRow; priority: number }> = {
+  order: { field: "orderRef", priority: 1 },
+  order_id: { field: "orderRef", priority: 1 },
+  order_ref: { field: "orderRef", priority: 1 },
+  order_number: { field: "orderRef", priority: 1 },
+  customer: { field: "customerName", priority: 1 },
+  customer_name: { field: "customerName", priority: 1 },
+  name: { field: "customerName", priority: 2 },
+  email: { field: "customerEmail", priority: 1 },
+  customer_email: { field: "customerEmail", priority: 1 },
+  invoice: { field: "invoiceNumber", priority: 1 },
+  invoice_number: { field: "invoiceNumber", priority: 1 },
+  invoice_no: { field: "invoiceNumber", priority: 1 },
+  date: { field: "date", priority: 1 },
+  order_date: { field: "date", priority: 1 },
+  invoice_date: { field: "date", priority: 2 },
+  status: { field: "status", priority: 1 },
+  order_status: { field: "status", priority: 2 },
+  total: { field: "amount", priority: 1 },
+  amount: { field: "amount", priority: 1 },
+  total_price: { field: "amount", priority: 1 },
+  grand_total: { field: "amount", priority: 1 },
+  total_amount: { field: "amount", priority: 1 },
+  notes: { field: "notes", priority: 1 },
+  customer_notes: { field: "notes", priority: 1 },
+  payment_method: { field: "paymentMethod", priority: 1 },
+  payment: { field: "paymentMethod", priority: 2 },
+};
+
+// Strips punctuation like "#" or "()" so headers such as "Invoice #" or
+// "Total Price (RWF)" still match, and collapses whitespace to underscores.
+function normalizeHeader(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim()
+    .replace(/\s+/g, "_");
+}
 
 function parseCsv(text: string): string[][] {
   // Minimal CSV parser that handles quoted fields and escaped quotes.
@@ -276,25 +307,32 @@ export async function importSalesCsv(input: z.infer<typeof importSchema>) {
   const user = await requireUser();
   const { csv, filename } = importSchema.parse(input);
 
-  const rows = parseCsv(csv);
+  // Strip a leading UTF-8 BOM — Excel's "CSV UTF-8" export adds one, and it
+  // would otherwise survive trim() and break matching on the first header.
+  const rows = parseCsv(csv.replace(/^\uFEFF/, ""));
   if (rows.length < 2) {
     return { error: "CSV is empty or missing a header row." };
   }
   const [headerRow, ...dataRows] = rows;
-  const headers = headerRow.map((h) =>
-    h.trim().toLowerCase().replace(/\s+/g, "_"),
-  );
+  const headers = headerRow.map(normalizeHeader);
 
   const columnIndex: Partial<Record<keyof ParsedRow, number>> = {};
+  const columnPriority: Partial<Record<keyof ParsedRow, number>> = {};
   headers.forEach((h, i) => {
-    const key = headerMap[h];
-    if (key && columnIndex[key] === undefined) columnIndex[key] = i;
+    const match = headerMap[h];
+    if (!match) return;
+    const { field, priority } = match;
+    const currentPriority = columnPriority[field];
+    if (currentPriority === undefined || priority < currentPriority) {
+      columnIndex[field] = i;
+      columnPriority[field] = priority;
+    }
   });
 
   if (columnIndex.amount === undefined) {
     return {
       error:
-        "Couldn't find an amount/total column. Expected a 'Total' or 'Amount' header.",
+        "Couldn't find an amount column. Expected a header like 'Total', 'Amount', or 'Total price'.",
     };
   }
 
@@ -335,6 +373,14 @@ export async function importSalesCsv(input: z.infer<typeof importSchema>) {
 
     const invoiceNumber = get("invoiceNumber") || null;
 
+    // Sale has no dedicated payment-method column, so fold it into notes
+    // rather than lose it.
+    const paymentMethod = get("paymentMethod");
+    const notes =
+      [get("notes"), paymentMethod && `Payment: ${paymentMethod}`]
+        .filter(Boolean)
+        .join(" · ") || null;
+
     try {
       if (invoiceNumber) {
         await prisma.sale.upsert({
@@ -346,6 +392,7 @@ export async function importSalesCsv(input: z.infer<typeof importSchema>) {
             amount,
             status,
             date,
+            notes,
             source: "IMPORTED",
             importId: importRecord.id,
           },
@@ -357,6 +404,7 @@ export async function importSalesCsv(input: z.infer<typeof importSchema>) {
             amount,
             status,
             date,
+            notes,
             source: "IMPORTED",
             createdById: user.id,
             importId: importRecord.id,
@@ -371,6 +419,7 @@ export async function importSalesCsv(input: z.infer<typeof importSchema>) {
             amount,
             status,
             date,
+            notes,
             source: "IMPORTED",
             createdById: user.id,
             importId: importRecord.id,
