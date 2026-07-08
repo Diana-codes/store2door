@@ -303,9 +303,32 @@ function parseDate(raw: string | undefined): Date | null {
   return null;
 }
 
+// Detects a non-CSV file chosen by mistake. Browsers happily read PDFs,
+// spreadsheets, and other binary files as "text" (mangling every non-ASCII
+// byte into replacement characters), so without this check the user would
+// just see a confusing "couldn't find an amount column" error.
+function detectNonCsv(text: string): string | null {
+  const head = text.slice(0, 2000);
+  if (head.startsWith("%PDF-")) {
+    return "This looks like a PDF file, not a CSV. Please upload the .csv export from your orders page \u2014 a PDF invoice can't be read as spreadsheet rows.";
+  }
+  if (head.startsWith("PK")) {
+    return "This looks like an Excel (.xlsx) or Word file, not a CSV. In Excel, use File \u2192 Save As \u2192 CSV (Comma delimited), then upload that file.";
+  }
+  const controlCharCount = (head.match(/[\x00-\x08\x0e-\x1f\uFFFD]/g) ?? [])
+    .length;
+  if (controlCharCount > 5) {
+    return "This doesn't look like a text CSV file. Please upload a .csv export from your orders page.";
+  }
+  return null;
+}
+
 export async function importSalesCsv(input: z.infer<typeof importSchema>) {
   const user = await requireUser();
   const { csv, filename } = importSchema.parse(input);
+
+  const nonCsvError = detectNonCsv(csv);
+  if (nonCsvError) return { error: nonCsvError };
 
   // Strip a leading UTF-8 BOM — Excel's "CSV UTF-8" export adds one, and it
   // would otherwise survive trim() and break matching on the first header.

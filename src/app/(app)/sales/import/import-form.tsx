@@ -21,6 +21,9 @@ export function ImportForm() {
   const [pending, startTransition] = useTransition();
   const [filename, setFilename] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [extensionWarning, setExtensionWarning] = useState<string | null>(
+    null,
+  );
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -29,12 +32,18 @@ export function ImportForm() {
     const text = await file.text();
     setPreview(text.slice(0, 600));
     setResult(null);
+    setExtensionWarning(
+      /\.csv$/i.test(file.name)
+        ? null
+        : `"${file.name}" doesn't look like a .csv file — imports need a CSV export, not a PDF, Word, or Excel file.`,
+    );
   }
 
   function clearFile() {
     if (fileInput.current) fileInput.current.value = "";
     setFilename(null);
     setPreview(null);
+    setExtensionWarning(null);
     setResult(null);
   }
 
@@ -80,6 +89,13 @@ export function ImportForm() {
           )}
         </div>
       </div>
+
+      {extensionWarning && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+          <p>{extensionWarning}</p>
+        </div>
+      )}
 
       {preview && (
         <div className="rounded-md border bg-muted/40">
